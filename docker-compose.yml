@@ -1,0 +1,20 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: devassist-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: devassist
+      POSTGRES_USER: devassist
+      POSTGRES_PASSWORD: devassist
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
