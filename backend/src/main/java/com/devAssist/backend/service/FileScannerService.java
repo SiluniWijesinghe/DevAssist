@@ -1,6 +1,8 @@
 package com.devAssist.backend.service;
 
 import com.devAssist.backend.dto.ScannedFile;
+import com.devAssist.backend.exception.FileScanException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class FileScannerService {
 
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(
@@ -34,7 +37,7 @@ public class FileScannerService {
 
     private static final long MAX_FILE_SIZE = 1_000_000;
 
-    public List<ScannedFile> scanRepository(Path repositoryPath) throws IOException {
+    public List<ScannedFile> scanRepository(Path repositoryPath)  {
 
         List<ScannedFile> scannedFiles = new ArrayList<>();
 
@@ -48,51 +51,50 @@ public class FileScannerService {
                     .filter(this::isWithinSizeLimit)
                     .forEach(path -> {
 
-                        try {
-                            scannedFiles.add(scanFile(
-                                    repositoryPath,
-                                    path
-                            ));
-                        } catch (IOException e) {
-                            System.err.println(
-                                    "Could not read file: " + path
-                            );
-                        }
+                        scannedFiles.add(scanFile(
+                                repositoryPath,
+                                path
+                        ));
                     });
+        }catch(IOException e){
+            throw  new FileScanException(e.getMessage());
         }
 
         return scannedFiles;
     }
 
-    private ScannedFile scanFile(Path repositoryPath, Path filePath) throws IOException {
+    private ScannedFile scanFile(Path repositoryPath, Path filePath)  {
+        try {
+            String content = Files.readString(
+                    filePath,
+                    StandardCharsets.UTF_8
+            );
 
-        String content = Files.readString(
-                filePath,
-                StandardCharsets.UTF_8
-        );
+            String relativePath =
+                    repositoryPath
+                            .relativize(filePath)
+                            .toString()
+                            .replace("\\", "/");
 
-        String relativePath =
-                repositoryPath
-                        .relativize(filePath)
-                        .toString()
-                        .replace("\\", "/");
+            String fileName =
+                    filePath.getFileName().toString();
 
-        String fileName =
-                filePath.getFileName().toString();
+            String extension =
+                    getExtension(fileName);
 
-        String extension =
-                getExtension(fileName);
+            long size =
+                    Files.size(filePath);
 
-        long size =
-                Files.size(filePath);
-
-        return new ScannedFile(
-                relativePath,
-                fileName,
-                extension,
-                size,
-                content
-        );
+            return new ScannedFile(
+                    relativePath,
+                    fileName,
+                    extension,
+                    size,
+                    content
+            );
+        }catch (IOException | FileScanException e){
+            throw new FileScanException(e.getMessage());
+        }
     }
 
     private boolean isInsideGitDirectory(Path repositoryPath, Path filePath) {

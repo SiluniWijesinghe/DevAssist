@@ -30,5 +30,4 @@ public class RepositoryFile {
     @JoinColumn(name = "repository_id", nullable = false)
     private Repository repository;
 
-    // getters and setters
 }

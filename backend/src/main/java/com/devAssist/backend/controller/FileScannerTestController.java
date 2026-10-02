@@ -17,7 +17,7 @@ public class FileScannerTestController {
 
         this.fileScannerService = fileScannerService;
     }
-    
+
     public record ScanRequest(String path) {}
 
     @PostMapping("/api/files/test")
