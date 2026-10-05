@@ -5,8 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface GitRepoRepository
-        extends JpaRepository<Repository, Long> {
-
+public interface GitRepoRepository extends JpaRepository<Repository, Long> {
     Optional<Repository> findByUrl(String url);
 }

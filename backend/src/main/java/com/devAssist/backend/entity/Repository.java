@@ -2,6 +2,8 @@ package com.devAssist.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +34,11 @@ public class Repository {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<RepositoryFile> files = new ArrayList<>();
-
+    public void addFile(RepositoryFile file) {
+        files.add(file);
+        file.setRepository(this);
+    }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,8 +39,8 @@ public class RepositoryIngestionService {
 
         repository.setName(repositoryName);
         repository.setUrl(url);
+        repository.setCreatedAt(LocalDateTime.now());
 
-        repository = gitRepoRepository.save(repository);
 
         // 4. Convert scanned files into RepositoryFile entities
         for (ScannedFile scannedFile : scannedFiles) {
@@ -48,11 +49,13 @@ public class RepositoryIngestionService {
 
             repositoryFile.setRepository(repository);
             repositoryFile.setPath(scannedFile.getPath());
+            repositoryFile.setExtension(scannedFile.getExtension());
             repositoryFile.setContent(scannedFile.getContent());
+            repositoryFile.setFileName(scannedFile.getFileName());
+            repositoryFile.setSizeBytes(scannedFile.getSizeBytes());
 
-            repoFileRepository.save(repositoryFile);
+            repository.addFile(repositoryFile);
         }
-
-        return repository;
+        return gitRepoRepository.save(repository);
     }
 }
