@@ -26,8 +26,7 @@ public class RepositoryFile {
     @Column(nullable = false)
     private Long sizeBytes;
 
-    //@Column(columnDefinition = "TEXT")
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
