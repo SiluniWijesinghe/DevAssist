@@ -1,16 +1,35 @@
-# React + Vite
+# DevAssist frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 18 + Vite + Tailwind CSS v4. Talks to the Spring Boot backend through `/api` (proxied to `localhost:8080` in dev, to `backend:8080` by nginx in Docker).
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Structure
 
-## React Compiler
+```
+src/
+  App.jsx                    composes the layout; owns no business logic
+  index.css                  Tailwind import + design tokens (light/dark)
+  hooks/
+    useStored.js             useState persisted to localStorage
+    useRepositories.js       connected repos, selected repo, connect/remove
+    useChat.js               per-repo conversations, send/stop/retry
+  lib/                       api calls, error text, GitHub URL + file-path helpers
+  components/
+    Logo.jsx                 LogoMark (the "D" git graph) and Logo (mark + wordmark)
+    Sidebar.jsx  TopBar.jsx  ContextPanel.jsx
+    Welcome.jsx              empty state
+    Conversation.jsx         MessageList + Composer + error banner
+    MessageList.jsx  Message.jsx  StarterPrompts.jsx  Composer.jsx
+    ConnectRepoDialog.jsx
+    Markdown.jsx             assistant answers, with copyable code blocks
+    ui/                      Button, TextField, ErrorBanner, Spinner
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Theming
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Colors are CSS variables in `src/index.css` (`--accent`, `--surface`, ...). They switch with the OS light/dark setting and are exposed to Tailwind as `bg-surface`, `text-muted`, `border-line`, `bg-accent`, and so on. Change the brand color by editing `--accent` and `--accent-soft` in both blocks, and the `fill`/`stroke` values in `public/favicon.svg`.
