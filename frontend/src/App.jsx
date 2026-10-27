@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import AuthScreen from './components/AuthScreen.jsx';
-import { clearToken, getToken, logout as apiLogout } from './lib/api.js';
+import { clearToken, ensureAwake, getToken, logout as apiLogout } from './lib/api.js';
+import { MESSAGES, SESSION_NOTICE_KEY } from './lib/errors.js';
+import WakeNotice from './components/WakeNotice.jsx';
+import ErrorBanner from './components/ui/ErrorBanner.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import TopBar from './components/TopBar.jsx';
 import Welcome from './components/Welcome.jsx';
@@ -22,21 +25,33 @@ export default function App() {
 
   useEffect(() => {
     const unauthorized = () => {
+      sessionStorage.setItem(SESSION_NOTICE_KEY, MESSAGES.sessionExpired);
       clearToken(); clearLocalUserData(); setAuthenticated(false);
     };
     window.addEventListener('devassist:unauthorized', unauthorized);
     return () => window.removeEventListener('devassist:unauthorized', unauthorized);
   }, []);
 
-  if (!authenticated) {
-    return <AuthScreen onAuthenticated={() => window.location.reload()} />;
-  }
+  // Start waking the free-tier backend as soon as someone opens (or returns to) the site.
+  useEffect(() => {
+    const warmUp = () => { if (document.visibilityState === 'visible') ensureAwake().catch(() => {}); };
+    warmUp();
+    document.addEventListener('visibilitychange', warmUp);
+    return () => document.removeEventListener('visibilitychange', warmUp);
+  }, []);
 
-  return <AuthenticatedApp onLogout={() => setAuthenticated(false)} />;
+  return (
+    <>
+      <WakeNotice />
+      {authenticated
+        ? <AuthenticatedApp onLogout={() => setAuthenticated(false)} />
+        : <AuthScreen onAuthenticated={() => window.location.reload()} />}
+    </>
+  );
 }
 
 function AuthenticatedApp({ onLogout }) {
-  const { repos, repo, activeId, select, connect, remove, sync } = useRepositories();
+  const { repos, repo, activeId, select, connect, remove, sync, loadError, reload } = useRepositories();
   const [syncing, setSyncing] = useState(false); const chat = useChat(repo);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -77,6 +92,7 @@ function AuthenticatedApp({ onLogout }) {
       <main className="flex h-dvh min-w-0 flex-col">
         <TopBar repos={repos} repo={repo} activeId={activeId} onSelect={select} onAdd={openDialog}
           canClear={Boolean(repo) && chat.messages.length > 0} onClear={chat.clear} onLogout={handleLogout} />
+        {loadError && <div className="px-3.5 py-2 md:px-7"><ErrorBanner message={loadError} onRetry={reload} /></div>}
         {repo ? <Conversation repo={repo} chat={chat} /> : <Welcome onConnect={openDialog} />}
       </main>
       {repo && <ContextPanel repo={repo} messageCount={chat.messages.length} files={extractFilePaths(chat.messages)}

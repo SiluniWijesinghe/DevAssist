@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { authenticate } from '../lib/api.js';
 import { Logo } from './Logo.jsx';
+import { SESSION_NOTICE_KEY, friendlyError } from '../lib/errors.js';
+import { useWakeState } from '../lib/wake.js';
 
 export default function AuthScreen({ onAuthenticated }) {
   const [mode, setMode] = useState('login');
@@ -8,11 +10,15 @@ export default function AuthScreen({ onAuthenticated }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice] = useState(() => sessionStorage.getItem(SESSION_NOTICE_KEY) || '');
+  const { waking } = useWakeState();
+
+  useEffect(() => { sessionStorage.removeItem(SESSION_NOTICE_KEY); }, []);
 
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError('');
     try { await authenticate(mode, email, password); onAuthenticated(); }
-    catch (e) { setError(e.message || 'Authentication failed.'); }
+    catch (e) { setError(friendlyError(e, 'Authentication failed. Please try again.')); }
     finally { setBusy(false); }
   }
 
@@ -24,8 +30,9 @@ export default function AuthScreen({ onAuthenticated }) {
       <form className="mt-7 space-y-4" onSubmit={submit}>
         <label className="block text-sm">Email address<input className="mt-1 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500" type="email" autoComplete="email" required maxLength={254} value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label className="block text-sm">Password<input className="mt-1 w-full rounded-lg border border-[var(--line)] bg-transparent px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={8} maxLength={72} value={password} onChange={e => setPassword(e.target.value)} /></label>
+        {notice && !error && <p role="status" className="rounded-lg bg-blue-500/10 p-3 text-sm text-blue-500">{notice}</p>}
         {error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
-        <button disabled={busy} className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-60">{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
+        <button disabled={busy} className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-60">{busy ? (waking ? 'Starting the server…' : 'Please wait…') : mode === 'login' ? 'Sign in' : 'Create account'}</button>
       </form>
       <p className="mt-5 text-center text-sm text-[var(--muted)]">{mode === 'login' ? 'New to DevAssist?' : 'Already have an account?'}{' '}
         <button className="font-medium text-blue-500 hover:underline" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'Create account' : 'Sign in'}</button>

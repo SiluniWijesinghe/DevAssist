@@ -5,12 +5,14 @@ import TextField from './ui/TextField.jsx';
 import ErrorBanner from './ui/ErrorBanner.jsx';
 import { GITHUB_URL_RE, inferName, normalizeUrl } from '../lib/github.js';
 import { friendlyError } from '../lib/errors.js';
+import { useWakeState } from '../lib/wake.js';
 
 // Mounted only while open, so its state resets every time it is shown.
 export default function ConnectRepoDialog({ onClose, onConnect }) {
   const [form, setForm] = useState({ url: '', name: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const { waking } = useWakeState();
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape' && !busy) onClose(); };
@@ -78,7 +80,7 @@ export default function ConnectRepoDialog({ onClose, onConnect }) {
         <div className="mt-1 flex justify-end gap-2.5">
           <Button variant="ghost" disabled={busy} onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>
-            {busy ? <><Spinner /> Cloning and indexing…</> : 'Import repository'}
+            {busy ? <><Spinner /> {waking ? 'Waking up the server…' : 'Cloning and indexing…'}</> : 'Import repository'}
           </Button>
         </div>
       </form>
