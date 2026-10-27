@@ -24,24 +24,36 @@ export async function authenticate(mode, email, password) {
   setToken(body.token);
   return body;
 }
+
 export async function logout() {
   try { await request('/api/auth/logout', { method: 'POST' }, 'Logout failed'); } finally { clearToken(); }
 }
+
 export async function fetchRepositories() {
   return request('/api/repositories', {}, 'Could not load repositories');
 }
+
 export async function importRepository(url, name) {
   const body = await request(`/api/repositories?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`, { method: 'POST' }, 'Import failed');
   if (body.id == null) throw new Error('The backend response has no repository id.');
   return { id: body.id, name: body.name || name, url: body.url || url };
 }
+
 export async function deleteRepository(repositoryId) {
   await request(`/api/repositories/${encodeURIComponent(repositoryId)}`, { method: 'DELETE' }, 'Could not remove repository');
 }
+
 export async function askAgent(repositoryId, message, signal) {
   const body = await request('/api/agent/chat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
     body: JSON.stringify({ repositoryId: Number(repositoryId), message }),
   }, 'Request failed');
   return body.answer || 'The agent returned an empty answer.';
+}
+
+export async function fetchMessages(repositoryId) {
+  return request(`/api/repositories/${encodeURIComponent(repositoryId)}/messages`, {}, 'Could not load chat history');
+}
+export async function clearMessages(repositoryId) {
+  await request(`/api/repositories/${encodeURIComponent(repositoryId)}/messages`, { method: 'DELETE' }, 'Could not clear chat');
 }

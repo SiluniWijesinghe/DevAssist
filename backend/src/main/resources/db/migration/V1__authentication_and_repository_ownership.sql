@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS repository_files (
     content TEXT,
     repository_id BIGINT NOT NULL REFERENCES repositories(id)
 );
-
 -- Existing repositories are retained but remain unowned until explicitly reassigned.
 -- They cannot be accessed through authenticated endpoints while owner_id is NULL.
 ALTER TABLE repositories ADD COLUMN IF NOT EXISTS owner_id BIGINT;

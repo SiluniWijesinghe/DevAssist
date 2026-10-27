@@ -2,6 +2,7 @@ package com.devAssist.backend.controller;
 
 import com.devAssist.backend.dto.RepositoryResponse;
 import com.devAssist.backend.entity.Repository;
+import com.devAssist.backend.repository.ChatMessageRepository;
 import com.devAssist.backend.repository.GitRepoRepository;
 import com.devAssist.backend.repository.RepoFileRepository;
 import com.devAssist.backend.service.RepositoryIngestionService;
@@ -15,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/repositories")
@@ -24,6 +26,7 @@ public class RepositoryController {
     private final RepositoryIngestionService repositoryIngestionService;
     private final GitRepoRepository gitRepoRepository;
     private final RepoFileRepository repoFileRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     @PostMapping
     public ResponseEntity<RepositoryResponse> ingestRepository(@RequestParam @NotBlank @Size(max = 500) String url,
@@ -50,5 +53,21 @@ public class RepositoryController {
     private RepositoryResponse response(Repository repository) {
         return new RepositoryResponse(repository.getId(), repository.getName(), repository.getUrl(),
                 repository.getCreatedAt(), repoFileRepository.countByRepositoryId(repository.getId()));
+    }
+
+    @GetMapping("/{id}/messages")
+    public List<Map<String, String>> messages(@PathVariable Long id, Authentication authentication) {
+        gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(id, authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found"));
+        return chatMessageRepository.findByRepositoryIdOrderByIdAsc(id).stream()
+                .map(m -> Map.of("role", m.getRole(), "content", m.getContent())).toList();
+    }
+
+    @DeleteMapping("/{id}/messages")
+    public ResponseEntity<Void> clearMessages(@PathVariable Long id, Authentication authentication) {
+        gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(id, authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found"));
+        chatMessageRepository.deleteByRepositoryId(id);
+        return ResponseEntity.noContent().build();
     }
 }

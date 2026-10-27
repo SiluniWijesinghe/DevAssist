@@ -15,7 +15,6 @@ import { cx } from './lib/cx.js';
 function clearLocalUserData() {
   localStorage.removeItem('devassist.repos');
   localStorage.removeItem('devassist.active');
-  localStorage.removeItem('devassist.chats');
 }
 
 export default function App() {
