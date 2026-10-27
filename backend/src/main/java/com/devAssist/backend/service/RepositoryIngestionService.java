@@ -3,11 +3,15 @@ package com.devAssist.backend.service;
 import com.devAssist.backend.dto.ScannedFile;
 import com.devAssist.backend.entity.Repository;
 import com.devAssist.backend.entity.RepositoryFile;
-import com.devAssist.backend.repository.RepoFileRepository;
+import com.devAssist.backend.entity.User;
+import com.devAssist.backend.repository.UserRepository;
 import com.devAssist.backend.repository.GitRepoRepository;
+import com.devAssist.backend.repository.RepoFileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -21,10 +25,17 @@ public class RepositoryIngestionService {
     private final FileScannerService fileScannerService;
     private final GitRepoRepository gitRepoRepository;
     private final RepoFileRepository repoFileRepository;
+    private final UserRepository userRepository;
 
 
     @Transactional
-    public Repository ingestRepository(String url, String repositoryName)  {
+    public Repository ingestRepository(String url, String repositoryName, String ownerEmail)  {
+
+        User owner = userRepository.findByEmailIgnoreCase(ownerEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User account not found"));
+        if (url == null || !url.matches("https://github\\.com/[^/\\s]+/[^/\\s]+/?")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only public GitHub repository URLs are supported");
+        }
 
         // 1. Clone repository
         Path repositoryPath =
@@ -38,6 +49,7 @@ public class RepositoryIngestionService {
         Repository repository = new Repository();
 
         repository.setName(repositoryName);
+        repository.setOwner(owner);
         repository.setUrl(url);
         repository.setCreatedAt(LocalDateTime.now());
 

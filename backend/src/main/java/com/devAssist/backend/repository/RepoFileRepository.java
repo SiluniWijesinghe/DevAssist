@@ -35,4 +35,6 @@ public interface RepoFileRepository extends JpaRepository<RepositoryFile, Long> 
     );
 
     Optional<RepositoryFile> findByRepositoryIdAndPath(Long repositoryId, String path);
+
+    int countByRepositoryId(Long repositoryId);
 }

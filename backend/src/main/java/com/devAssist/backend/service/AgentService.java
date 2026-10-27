@@ -2,8 +2,11 @@ package com.devAssist.backend.service;
 
 import com.devAssist.backend.dto.OpenRouterRequest;
 import com.devAssist.backend.dto.OpenRouterResponse;
+import com.devAssist.backend.repository.GitRepoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,12 +18,17 @@ public class AgentService {
 
     private final LLMService llmService;
     private final ToolExecutor toolExecutor;
+    private final GitRepoRepository gitRepoRepository;
 
 
     public String chat(
             Long repositoryId,
-            String userMessage
+            String userMessage,
+            String ownerEmail
     ) {
+        if (repositoryId == null || !gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(repositoryId, ownerEmail).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found");
+        }
 
         List<OpenRouterRequest.Message> messages =
                 new ArrayList<>();
@@ -105,7 +113,7 @@ public class AgentService {
                 String result =
                         toolExecutor.execute(
                                 toolCall.function().name(),
-                                toolCall.function().arguments()
+                                toolCall.function().arguments(), ownerEmail
                         );
 
                 messages.add(

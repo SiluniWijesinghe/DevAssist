@@ -1,12 +1,11 @@
 package com.devAssist.backend.service;
 
-import com.devAssist.backend.tool.GitHistoryResult;
-import com.devAssist.backend.tool.ReadFileTool;
-import com.devAssist.backend.tool.SearchGitHistoryTool;
-import com.devAssist.backend.tool.SearchRepoTool;
-import com.devAssist.backend.tool.SearchResult;
+import com.devAssist.backend.repository.GitRepoRepository;
+import com.devAssist.backend.tool.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -21,10 +20,15 @@ public class ToolExecutor {
     private final ReadFileTool readFileTool;
     private final SearchGitHistoryTool searchGitHistoryTool;
     private final JsonMapper objectMapper;
+    private final GitRepoRepository gitRepoRepository;
 
-    public String execute(String toolName, String arguments) {
+    public String execute(String toolName, String arguments, String ownerEmail) {
         try {
             JsonNode args = objectMapper.readTree(arguments);
+            long requestedRepositoryId = requiredLong(args, "repositoryId");
+            if (gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(requestedRepositoryId, ownerEmail).isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found");
+            }
             return switch (toolName) {
                 case "searchRepository" -> executeSearchRepository(args);
                 case "readFile" -> executeReadFile(args);

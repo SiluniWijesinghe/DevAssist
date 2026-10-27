@@ -5,6 +5,7 @@ import com.devAssist.backend.dto.AgentChatResponse;
 import com.devAssist.backend.service.AgentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/agent")
@@ -15,12 +16,13 @@ public class AIController {
 
     @PostMapping("/chat")
     public AgentChatResponse chat(
-            @RequestBody AgentChatRequest request
+            @RequestBody AgentChatRequest request, Authentication authentication
     ) {
 
         String answer = agentService.chat(
                 request.repositoryId(),
-                request.message()
+                request.message(),
+                authentication.getName()
         );
 
         return new AgentChatResponse(answer);

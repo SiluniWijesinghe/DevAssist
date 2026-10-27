@@ -1,8 +1,8 @@
-import { Trash2 } from 'lucide-react';
+import { LogOut, Trash2 } from 'lucide-react';
 import { LogoMark } from './Logo.jsx';
 import Button from './ui/Button.jsx';
 
-export default function TopBar({ repos, repo, activeId, onSelect, onAdd, canClear, onClear }) {
+export default function TopBar({ repos, repo, activeId, onSelect, onAdd, canClear, onClear, onLogout }) {
   // The select doubles as the repository switcher on small screens, where the sidebar is hidden.
   const handleSelect = e => (e.target.value === '+' ? onAdd() : onSelect(Number(e.target.value) || e.target.value));
 
@@ -39,6 +39,9 @@ export default function TopBar({ repos, repo, activeId, onSelect, onAdd, canClea
         )}
       </div>
 
+      <button onClick={onLogout} className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-soft hover:text-ink" title="Sign out">
+        <LogOut size={15} /><span className="hidden sm:inline">Sign out</span>
+      </button>
       {canClear && (
         <Button variant="ghost" onClick={onClear} aria-label="Clear conversation">
           <Trash2 size={14} />
