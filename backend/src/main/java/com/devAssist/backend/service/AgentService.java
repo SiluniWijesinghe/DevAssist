@@ -2,6 +2,8 @@ package com.devAssist.backend.service;
 
 import com.devAssist.backend.dto.OpenRouterRequest;
 import com.devAssist.backend.dto.OpenRouterResponse;
+import com.devAssist.backend.entity.ChatMessage;
+import com.devAssist.backend.repository.ChatMessageRepository;
 import com.devAssist.backend.repository.GitRepoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +22,8 @@ public class AgentService {
     private final LLMService llmService;
     private final ToolExecutor toolExecutor;
     private final GitRepoRepository gitRepoRepository;
-
+    private final ChatMessageRepository chatMessageRepository;
+    private static final int MAX_HISTORY_CHARS = 3000;
 
     public String chat(
             Long repositoryId,
@@ -50,6 +54,7 @@ public class AgentService {
                                 - readFile supports optional startLine and lineCount for large files.
                                 - Avoid repeating an identical search without a reason.
                                 - Treat tool output as the evidence for claims about this repository.
+                                - Earlier messages in this conversation are context only and may be outdated. Re-inspect the repository with tools when an answer depends on code details.
                                 - Never invent classes, methods, files, line numbers, or commit details.
                                 - Cite inspected code using repository-relative paths and line numbers when available.
                                 - Separate confirmed observations from hypotheses and recommendations.
@@ -60,7 +65,7 @@ public class AgentService {
                         null
                 )
         );
-
+        messages.addAll(recentHistory(repositoryId));
         messages.add(
                 new OpenRouterRequest.Message(
                         "user",
@@ -136,7 +141,24 @@ public class AgentService {
         }
         return "I reached the investigation limit. Please narrow the question or ask about a specific file.";
     }
+    private List<OpenRouterRequest.Message> recentHistory(Long repositoryId) {
+        List<ChatMessage> recent = new ArrayList<>(
+                chatMessageRepository.findTop8ByRepositoryIdOrderByIdDesc(repositoryId));
+        Collections.reverse(recent);
+        // The window must start with a user turn
+        while (!recent.isEmpty() && !"user".equals(recent.getFirst().getRole())) {
+            recent.removeFirst();
+        }
+        return recent.stream()
+                .map(m -> new OpenRouterRequest.Message(m.getRole(), truncate(m.getContent()), null, null))
+                .toList();
+    }
 
+    private String truncate(String text) {
+        return text.length() <= MAX_HISTORY_CHARS
+                ? text
+                : text.substring(0, MAX_HISTORY_CHARS) + "\n…[truncated]";
+    }
     private List<OpenRouterRequest.ToolCall> convertToolCalls(
             List<OpenRouterResponse.ToolCall> toolCalls
     ) {

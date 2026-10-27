@@ -36,12 +36,19 @@ export default function App() {
 }
 
 function AuthenticatedApp({ onLogout }) {
-  const { repos, repo, activeId, select, connect, remove } = useRepositories();
-  const chat = useChat(repo);
+  const { repos, repo, activeId, select, connect, remove, sync } = useRepositories();
+  const [syncing, setSyncing] = useState(false); const chat = useChat(repo);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const openDialog = () => setDialogOpen(true);
   const closeDialog = () => setDialogOpen(false);
+
+  async function syncRepository() {
+    setSyncing(true);
+    try { await sync(repo.id); await chat.reload(); }
+    catch (e) { window.alert(e.message || 'Re-sync failed.'); }
+    finally { setSyncing(false); }
+  }
 
   async function connectRepository(url, name) {
     await connect(url, name);
@@ -72,7 +79,8 @@ function AuthenticatedApp({ onLogout }) {
           canClear={Boolean(repo) && chat.messages.length > 0} onClear={chat.clear} onLogout={handleLogout} />
         {repo ? <Conversation repo={repo} chat={chat} /> : <Welcome onConnect={openDialog} />}
       </main>
-      {repo && <ContextPanel repo={repo} messageCount={chat.messages.length} files={extractFilePaths(chat.messages)} />}
+      {repo && <ContextPanel repo={repo} messageCount={chat.messages.length} files={extractFilePaths(chat.messages)}
+        onSync={syncRepository} syncing={syncing} />}
       {dialogOpen && <ConnectRepoDialog onClose={closeDialog} onConnect={connectRepository} />}
     </div>
   );

@@ -21,10 +21,11 @@ function AssistantFrame({ children }) {
   );
 }
 
-export function AssistantMessage({ children }) {
+export function AssistantMessage({ children, stale }) {
   return (
     <AssistantFrame>
       <Markdown>{children}</Markdown>
+      {stale && <p className="mt-2 text-xs text-muted">Answered before the last re-sync, so the code may have changed since.</p>}
     </AssistantFrame>
   );
 }

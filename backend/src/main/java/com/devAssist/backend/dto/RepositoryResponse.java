@@ -7,6 +7,7 @@ public record RepositoryResponse(
         String name,
         String url,
         LocalDateTime createdAt,
-        int indexedFiles
+        int indexedFiles,
+        LocalDateTime indexedAt
 ) {
 }

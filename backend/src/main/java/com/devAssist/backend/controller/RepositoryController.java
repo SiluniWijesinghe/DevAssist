@@ -36,6 +36,11 @@ public class RepositoryController {
         return ResponseEntity.ok(response(repository));
     }
 
+    @PostMapping("/{id}/sync")
+    public RepositoryResponse sync(@PathVariable Long id, Authentication authentication) {
+        return response(repositoryIngestionService.resync(id, authentication.getName()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRepository(@PathVariable Long id, Authentication authentication) {
         Repository repository = gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(id, authentication.getName())
@@ -52,7 +57,9 @@ public class RepositoryController {
 
     private RepositoryResponse response(Repository repository) {
         return new RepositoryResponse(repository.getId(), repository.getName(), repository.getUrl(),
-                repository.getCreatedAt(), repoFileRepository.countByRepositoryId(repository.getId()));
+                repository.getCreatedAt(), repoFileRepository.countByRepositoryId(repository.getId()),
+                repository.getIndexedAt() != null ? repository.getIndexedAt() : repository.getCreatedAt()
+        );
     }
 
     @GetMapping("/{id}/messages")
@@ -60,7 +67,7 @@ public class RepositoryController {
         gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(id, authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found"));
         return chatMessageRepository.findByRepositoryIdOrderByIdAsc(id).stream()
-                .map(m -> Map.of("role", m.getRole(), "content", m.getContent())).toList();
+                .map(m -> Map.of("role", m.getRole(), "content", m.getContent(),"createdAt", m.getCreatedAt().toString())).toList();
     }
 
     @DeleteMapping("/{id}/messages")

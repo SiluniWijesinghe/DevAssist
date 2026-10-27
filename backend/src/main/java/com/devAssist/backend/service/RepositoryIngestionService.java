@@ -4,9 +4,8 @@ import com.devAssist.backend.dto.ScannedFile;
 import com.devAssist.backend.entity.Repository;
 import com.devAssist.backend.entity.RepositoryFile;
 import com.devAssist.backend.entity.User;
-import com.devAssist.backend.repository.UserRepository;
 import com.devAssist.backend.repository.GitRepoRepository;
-import com.devAssist.backend.repository.RepoFileRepository;
+import com.devAssist.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,50 +23,55 @@ public class RepositoryIngestionService {
     private final GitService gitService;
     private final FileScannerService fileScannerService;
     private final GitRepoRepository gitRepoRepository;
-    private final RepoFileRepository repoFileRepository;
     private final UserRepository userRepository;
 
-
     @Transactional
-    public Repository ingestRepository(String url, String repositoryName, String ownerEmail)  {
-
+    public Repository ingestRepository(String url, String repositoryName, String ownerEmail) {
         User owner = userRepository.findByEmailIgnoreCase(ownerEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User account not found"));
         if (url == null || !url.matches("https://github\\.com/[^/\\s]+/[^/\\s]+/?")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only public GitHub repository URLs are supported");
         }
 
-        // 1. Clone repository
-        Path repositoryPath =
-                gitService.cloneRepository(url, repositoryName);
+        Path repositoryPath = gitService.cloneRepository(url, repositoryName);
+        List<ScannedFile> scannedFiles = fileScannerService.scanRepository(repositoryPath);
 
-        // 2. Scan repository files
-        List<ScannedFile> scannedFiles =
-                fileScannerService.scanRepository(repositoryPath);
-
-        // 3. Create and save Repository
+        LocalDateTime now = LocalDateTime.now();
         Repository repository = new Repository();
-
         repository.setName(repositoryName);
         repository.setOwner(owner);
         repository.setUrl(url);
-        repository.setCreatedAt(LocalDateTime.now());
-
-
-        // 4. Convert scanned files into RepositoryFile entities
-        for (ScannedFile scannedFile : scannedFiles) {
-
-            RepositoryFile repositoryFile = new RepositoryFile();
-
-            repositoryFile.setRepository(repository);
-            repositoryFile.setPath(scannedFile.getPath());
-            repositoryFile.setExtension(scannedFile.getExtension());
-            repositoryFile.setContent(scannedFile.getContent());
-            repositoryFile.setFileName(scannedFile.getFileName());
-            repositoryFile.setSizeBytes(scannedFile.getSizeBytes());
-
-            repository.addFile(repositoryFile);
-        }
+        repository.setCreatedAt(now);
+        repository.setIndexedAt(now);
+        attachFiles(repository, scannedFiles);
         return gitRepoRepository.save(repository);
+    }
+
+    /** Re-clones the repo and replaces its indexed files. The old index is kept if the clone fails. */
+    @Transactional
+    public Repository resync(Long id, String ownerEmail) {
+        Repository repository = gitRepoRepository.findByIdAndOwner_EmailIgnoreCase(id, ownerEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repository not found"));
+
+        Path repositoryPath = gitService.cloneRepository(repository.getUrl(), repository.getName());
+        List<ScannedFile> scannedFiles = fileScannerService.scanRepository(repositoryPath);
+
+        repository.getFiles().clear();            // orphanRemoval deletes the old rows
+        attachFiles(repository, scannedFiles);
+        repository.setIndexedAt(LocalDateTime.now());
+        return gitRepoRepository.save(repository);
+    }
+
+    private void attachFiles(Repository repository, List<ScannedFile> scannedFiles) {
+        for (ScannedFile f : scannedFiles) {
+            RepositoryFile file = new RepositoryFile();
+            file.setRepository(repository);
+            file.setPath(f.getPath());
+            file.setExtension(f.getExtension());
+            file.setContent(f.getContent());
+            file.setFileName(f.getFileName());
+            file.setSizeBytes(f.getSizeBytes());
+            repository.addFile(file);
+        }
     }
 }

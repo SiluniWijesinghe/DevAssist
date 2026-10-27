@@ -14,7 +14,7 @@ export default function Conversation({ repo, chat }) {
 
   return (
     <>
-      <MessageList repoName={repo.name} messages={chat.messages} sending={chat.sending} onPickStarter={send} />
+      <MessageList repoName={repo.name} messages={chat.messages} sending={chat.sending} onPickStarter={send} indexedAt={repo.indexedAt} />
       <div>
         {chat.error && (
           <div className="mx-auto w-full max-w-[740px] px-3.5 md:px-7">

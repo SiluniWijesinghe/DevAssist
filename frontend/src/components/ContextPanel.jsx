@@ -11,7 +11,7 @@ function Row({ label, children }) {
 
 const heading = 'mb-2.5 text-xs font-semibold text-muted';
 
-export default function ContextPanel({ repo, messageCount, files }) {
+export default function ContextPanel({ repo, messageCount, files, onSync, syncing }) {
   return (
     <aside className="hidden overflow-y-auto border-l border-line bg-surface px-4 py-5 min-[1100px]:block">
       <h3 className={heading}>Repository</h3>
@@ -20,6 +20,11 @@ export default function ContextPanel({ repo, messageCount, files }) {
         <a href={repo.url} target="_blank" rel="noreferrer" className="text-accent">Open on GitHub</a>
       </Row>
       <Row label="Messages">{messageCount}</Row>
+      <Row label="Indexed">{repo.indexedAt ? new Date(repo.indexedAt).toLocaleString() : '—'}</Row>
+      <button type="button" disabled={syncing} onClick={onSync}
+        className="mb-2 w-full rounded-md border border-line px-2 py-1.5 text-[13px] hover:bg-soft disabled:opacity-60">
+        {syncing ? 'Re-syncing…' : 'Re-sync from GitHub'}
+      </button>
 
       <h3 className={`${heading} mt-6.5`}>Files referenced</h3>
       {files.length === 0 ? (

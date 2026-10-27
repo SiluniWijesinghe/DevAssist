@@ -33,6 +33,9 @@ public class Repository {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "indexed_at")
+    private LocalDateTime indexedAt;
+
     @OneToMany(
             mappedBy = "repository",
             cascade = CascadeType.ALL,

@@ -36,7 +36,7 @@ export async function fetchRepositories() {
 export async function importRepository(url, name) {
   const body = await request(`/api/repositories?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`, { method: 'POST' }, 'Import failed');
   if (body.id == null) throw new Error('The backend response has no repository id.');
-  return { id: body.id, name: body.name || name, url: body.url || url };
+  return { id: body.id, name: body.name || name, url: body.url || url, indexedAt: body.indexedAt };
 }
 
 export async function deleteRepository(repositoryId) {
@@ -56,4 +56,10 @@ export async function fetchMessages(repositoryId) {
 }
 export async function clearMessages(repositoryId) {
   await request(`/api/repositories/${encodeURIComponent(repositoryId)}/messages`, { method: 'DELETE' }, 'Could not clear chat');
+}
+
+
+export async function syncRepository(id) {
+  const body = await request(`/api/repositories/${encodeURIComponent(id)}/sync`, { method: 'POST' }, 'Re-sync failed');
+  return { id: body.id, name: body.name, url: body.url, indexedAt: body.indexedAt };
 }

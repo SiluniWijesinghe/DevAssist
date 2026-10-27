@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStored } from './useStored.js';
-import { fetchRepositories, importRepository, deleteRepository } from '../lib/api.js';
+import { fetchRepositories, importRepository, deleteRepository, syncRepository } from '../lib/api.js';
 
 // The server is the source of truth for the repo list; only the active selection is kept locally.
 export function useRepositories() {
@@ -14,14 +14,18 @@ export function useRepositories() {
     fetchRepositories()
       .then(list => {
         if (cancelled) return;
-        setRepos(list.map(r => ({ id: r.id, name: r.name, url: r.url })));
-        // Drop a stale selection that doesn't belong to this user
+        setRepos(list.map(r => ({ id: r.id, name: r.name, url: r.url, indexedAt: r.indexedAt })));        // Drop a stale selection that doesn't belong to this user
         setActiveId(id => (list.some(r => r.id === id) ? id : null));
       })
       .catch(() => { /* 401 is handled globally by the devassist:unauthorized event */ })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+    async function sync(id) {
+      const updated = await syncRepository(id);
+      setRepos(list => list.map(r => (r.id === id ? { ...r, ...updated } : r)));
+    }
 
   async function connect(url, name) {
     const next = await importRepository(url, name);
@@ -36,5 +40,5 @@ export function useRepositories() {
     if (activeId === id) setActiveId(null);
   }
 
-  return { repos, repo, activeId, loading, select: setActiveId, connect, remove };
+  return { repos, repo, activeId, loading, select: setActiveId, connect, remove , sync};
 }
