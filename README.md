@@ -156,14 +156,3 @@ npm ci
 npm run build
 ```
 
-## Free public deployment
-
-See [DEPLOY_FREE.md](DEPLOY_FREE.md) for the Vercel + Render + Neon deployment guide, environment variables, and verification steps.
-
-## Current limitations
-
-- Repository list and chat history are stored in the current browser's local storage; they are not synchronized between browsers or users.
-- Import currently targets public GitHub repositories only.
-- The agent has a bounded tool-call loop and no streaming response yet.
-- The source index stores supported files up to 1 MB each; it does not index every language or use embeddings/RAG yet.
-- No user authentication or tenant isolation is implemented. Do not expose this instance publicly without adding access control and rate limits.
