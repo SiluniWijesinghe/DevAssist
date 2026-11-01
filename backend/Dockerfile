@@ -12,6 +12,7 @@ RUN apt-get update \
     && useradd --system --gid devassist --home-dir /app devassist
 WORKDIR /app
 COPY --from=build /workspace/target/backend-0.0.1-SNAPSHOT.jar app.jar
+RUN mkdir -p /app/data/repos && chown -R devassist:devassist /app
 USER devassist
 EXPOSE 8080
 HEALTHCHECK --interval=20s --timeout=5s --start-period=60s --retries=5 CMD curl --fail --silent http://localhost:8080/api/health || exit 1
